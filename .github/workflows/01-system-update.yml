@@ -2,7 +2,7 @@ name: 01-System Update
 
 on:
   workflow_dispatch: #manually action run krna
-  
+
 permissions:
   id-token: write
   contents: read
@@ -12,5 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        user: actions/checkout@V4
+        uses: actions/checkout@V4
 
