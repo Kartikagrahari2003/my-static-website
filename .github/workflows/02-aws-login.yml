@@ -1,0 +1,25 @@
+name: Aws login using OIDC
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  aws_login: # Job ID
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: repo copy in local vm
+        uses: actions/checkout@v4
+
+      - name: Co9nfig AwS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::889088857850:role/github-role-tier2
+          aws-region: sa-east-1
+
+      - name: Verifying aws login
+        run: aws sts get-caller-identity
