@@ -1,0 +1,46 @@
+name: 04 -Install nginx
+
+on:
+  workflow_dispatch:
+
+  permissions:
+    id-tokken: write
+    contents: read
+
+jobs: 
+
+  install-nginx on ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+      # step 1
+      - name: Checkoout repo
+        uses: actions/checkout@v4
+
+      # step 2
+      - name: Cinfigur Aws credentials(OICD)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::889088857850:role/github-role-tier2
+          aws-region: sa-east-1
+
+      # step3 verification
+      - name: Verify Aws identity
+        run: aws sts get-caller-identity
+
+      # step4 Install Nginx
+      - name: Install nginx using SSM
+        run: |
+          aws ssm send-commands \ 
+            --instance-ids "i-07653cf973456d7cf" \
+            --documents-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "sudo apt update -y",
+              "sudo apt install -y nginx",
+              "sudo systemctl enable nginx",
+              "sudo systemctl start nginx",
+              "sudo systemctl status nginx --no-pager"
+              ]' \
+              --region sa-east-1
+
+      
