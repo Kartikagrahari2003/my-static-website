@@ -24,7 +24,7 @@ jobs:
       - name: OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam:889088857850:role/github-role-tier2
+          role-to-assume: arn:aws:iam::889088857850:role/github-role-tier2
           aws-region: sa-east-1
 
       # verify AWs identity
