@@ -1,0 +1,56 @@
+name: 03 - SSM System Update
+
+on:
+  worflow_dispatch:
+
+  permissions:
+    id-token: write
+    contents: read
+
+  jobs:
+    system-update:
+      runs-on: ubuntu-latest
+
+      steps:
+        -name: Checkout repo
+        uses: actions/checkout@v4
+
+        # AWS OICD Login
+        -name: Config Aws Credientals (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::889088857856:role/github-role-tier2
+          aws-region: sa-east-1
+
+        #  Send ssm cmd
+        -name: Send ssm commands - apt update
+        id: ssm
+        run: |
+          COMMANDS_ID:$(aws ssm send-commands \
+            --documents-name "AWS-RunShellScripts" \
+            --targets "Key=instanceIds,Values=i-07653cf973456d7cf" \
+            --parameters 'commands=["sudo apt update -y"]' \
+            --region sa-east-1 \
+            --query "Command.CommandId" \
+            --output text)
+
+            echo "Commands ID: $COMMAND_ID"
+            echo "command_id=$COMMAND_ID" >> $GITHUB_OUTPUT
+
+        # Get output
+        -name: Wait & Fetch output
+        run: |
+          sleep 15
+
+          aws ssm list-command-invocations \
+            --command-id ${{ step.ssm.outputs.command_id }} \
+            --details \
+            --region sa-east-1
+
+
+
+
+
+
+
+        
