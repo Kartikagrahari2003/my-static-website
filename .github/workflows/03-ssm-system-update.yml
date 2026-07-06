@@ -2,51 +2,57 @@ name: 03 - SSM System Update
 
 on:
   workflow_dispatch:
- 
-  permissions:
-    id-token: write
-    contents: read
 
-  jobs:
-    system-update:
-      runs-on: ubuntu-latest
+permissions:
+  id-token: write
+  contents: read
 
-      steps:
-        -name: Checkout repo
+jobs:
+  system-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-        # AWS OICD Login
-        -name: Config Aws Credientals (OIDC)
+      # Configure AWS Credentials using OIDC
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::889088857856:role/github-role-tier2
+          role-to-assume: arn:aws:iam::889088857850:role/github-role-tier2
           aws-region: sa-east-1
 
-        #  Send ssm cmd
-        -name: Send ssm commands - apt update
+      # Verify AWS Login
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
+      # Send SSM Command
+      - name: Send SSM Command - apt update
         id: ssm
         run: |
-          COMMANDS_ID:$(aws ssm send-commands \
-            --documents-name "AWS-RunShellScripts" \
-            --targets "Key=instanceIds,Values=i-07653cf973456d7cf" \
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=InstanceIds,Values=i-07653cf973456d7cf" \
             --parameters 'commands=["sudo apt update -y"]' \
             --region sa-east-1 \
             --query "Command.CommandId" \
             --output text)
 
-            echo "Commands ID: $COMMAND_ID"
-            echo "command_id=$COMMAND_ID" >> $GITHUB_OUTPUT
+          echo "Command ID: $COMMAND_ID"
+          echo "command_id=$COMMAND_ID" >> $GITHUB_OUTPUT
 
-        # Get output
-        -name: Wait & Fetch output
+      # Wait for command execution
+      - name: Wait for SSM Command
+        run: sleep 15
+
+      # Fetch SSM Output
+      - name: Fetch SSM Output
         run: |
-          sleep 15
-
           aws ssm list-command-invocations \
-            --command-id ${{ step.ssm.outputs.command_id }} \
+            --command-id "${{ steps.ssm.outputs.command_id }}" \
             --details \
             --region sa-east-1
-
 
 
 
