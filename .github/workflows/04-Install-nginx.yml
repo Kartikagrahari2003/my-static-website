@@ -1,46 +1,52 @@
-name: 04 -Install nginx
+name: 04 - Install Nginx
 
 on:
   workflow_dispatch:
 
-  permissions:
-    id-tokken: write
-    contents: read
+permissions:
+  id-token: write
+  contents: read
 
-jobs: 
-
-  install-nginx on ubuntu:
+jobs:
+  install-nginx:
     runs-on: ubuntu-latest
 
     steps:
-      # step 1
-      - name: Checkoout repo
+
+      # ==========================
+      # Step 1 : Checkout Repository
+      # ==========================
+      - name: Step 1 - Checkout Repository
         uses: actions/checkout@v4
 
-      # step 2
-      - name: Cinfigur Aws credentials(OICD)
+      # ==========================
+      # Step 2 : Configure AWS Credentials (OIDC)
+      # ==========================
+      - name: Step 2 - Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::889088857850:role/github-role-tier2
           aws-region: sa-east-1
 
-      # step3 verification
-      - name: Verify Aws identity
+      # ==========================
+      # Step 3 : Verify AWS Identity
+      # ==========================
+      - name: Step 3 - Verify AWS Identity
         run: aws sts get-caller-identity
 
-      # step4 Install Nginx
-      - name: Install nginx using SSM
+      # ==========================
+      # Step 4 : Install Nginx using SSM
+      # ==========================
+      - name: Step 4 - Install Nginx using SSM
         run: |
-          aws ssm send-commands \ 
+          aws ssm send-command \
             --instance-ids "i-07653cf973456d7cf" \
-            --documents-name "AWS-RunShellScript" \
+            --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
               "sudo apt update -y",
               "sudo apt install -y nginx",
               "sudo systemctl enable nginx",
               "sudo systemctl start nginx",
               "sudo systemctl status nginx --no-pager"
-              ]' \
-              --region sa-east-1
-
-      
+            ]' \
+            --region sa-east-1
