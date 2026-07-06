@@ -1,0 +1,37 @@
+name: 06 Upload website in s3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read 
+
+jobs:
+  upload-to-s3:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout reposetory
+        uses: actions/checkout@v4
+
+      # create website zip
+      - name: Create website zip
+        run: |
+          zip -r website.zip index.html style.css script.js
+
+      # Config Aws credintails
+      - name: OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam:889088857850:role/github-role-tier2
+          aws-region: sa-east-1
+
+      # verify AWs identity
+      - name: Verify Aws identity
+        run: aws sts get-caller-identity
+
+      # Upload zip to s3
+      - name: Upload zip to s3
+        run: |
+          aws s3 cp website.zip s3://terraform-in-one-shot2003/website.zip
