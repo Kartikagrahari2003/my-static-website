@@ -32,34 +32,37 @@ jobs:
         run: |
           aws s3 cp website.zip s3://terraform-in-one-shot2003/website.zip
 
-      - name: Deploy Website on EC2 using SSM
+      - name: Deploy Website using AWS SSM
         run: |
 
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "i-07653cf973456d7cf" \
             --document-name "AWS-RunShellScript" \
-            --comment "Complete Static Website Deployment" \
+            --comment "Deploy Static Website" \
             --parameters 'commands=[
               "sudo mkdir -p /tmp/website",
               "cd /tmp/website",
+              "rm -rf *",
               "aws s3 cp s3://terraform-in-one-shot2003/website.zip .",
               "sudo apt-get update -y",
               "sudo apt-get install -y unzip",
-              "sudo unzip -o website.zip -d /tmp/website/release",
+              "sudo rm -rf release",
+              "mkdir release",
+              "sudo unzip -o website.zip -d release",
+              "ls -la release",
               "sudo rm -rf /var/www/html/*",
-              "sudo cp -r /tmp/website/release/* /var/www/html/",
+              "sudo cp -r release/* /var/www/html/",
               "sudo chown -R www-data:www-data /var/www/html",
               "sudo chmod -R 755 /var/www/html",
-              "sudo systemctl enable nginx",
+              "ls -la /var/www/html",
               "sudo systemctl restart nginx",
-              "sudo systemctl status nginx --no-pager",
-              "ls -la /var/www/html"
+              "sudo systemctl status nginx --no-pager"
             ]' \
             --region sa-east-1 \
             --query "Command.CommandId" \
             --output text)
 
-          echo "Command ID: $COMMAND_ID"
+          echo "Command ID : $COMMAND_ID"
 
           aws ssm wait command-executed \
             --command-id "$COMMAND_ID" \
