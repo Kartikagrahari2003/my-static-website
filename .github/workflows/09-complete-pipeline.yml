@@ -1,0 +1,72 @@
+name: 09 - Complete Static Website Deployment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Website ZIP
+        run: |
+          zip -r website.zip index.html style.css script.js
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::889088857850:role/github-role-tier2
+          aws-region: sa-east-1
+
+      - name: Upload Website ZIP to S3
+        run: |
+          aws s3 cp website.zip s3://terraform-in-one-shot2003/website.zip
+
+      - name: Deploy Website on EC2 using SSM
+        run: |
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "i-07653cf973456d7cf" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Complete Static Website Deployment" \
+            --parameters 'commands=[
+              "sudo mkdir -p /tmp/website",
+              "cd /tmp/website",
+              "aws s3 cp s3://terraform-in-one-shot2003/website.zip .",
+              "sudo apt-get update -y",
+              "sudo apt-get install -y unzip",
+              "sudo unzip -o website.zip -d /tmp/website/release",
+              "sudo rm -rf /var/www/html/*",
+              "sudo cp -r /tmp/website/release/* /var/www/html/",
+              "sudo chown -R www-data:www-data /var/www/html",
+              "sudo chmod -R 755 /var/www/html",
+              "sudo systemctl enable nginx",
+              "sudo systemctl restart nginx",
+              "sudo systemctl status nginx --no-pager",
+              "ls -la /var/www/html"
+            ]' \
+            --region sa-east-1 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-07653cf973456d7cf" \
+            --region sa-east-1
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "i-07653cf973456d7cf" \
+            --region sa-east-1
